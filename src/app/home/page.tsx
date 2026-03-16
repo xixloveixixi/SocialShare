@@ -234,6 +234,10 @@ export default function HomePage() {
   const userMenuItems = [
     { key: 'profile', icon: <UserOutlined />, label: '个人资料', onClick: () => router.push('/profile') },
     { key: 'settings', icon: <SettingOutlined />, label: '设置', onClick: () => router.push('/settings') },
+    ...(currentUser?.role === 'ADMIN' ? [
+      { type: 'divider' as const },
+      { key: 'admin', icon: <SettingOutlined />, label: '管理后台', onClick: () => router.push('/admin') }
+    ] : []),
     { type: 'divider' as const },
     { key: 'logout', icon: <LogoutOutlined />, label: '退出登录', danger: true, onClick: () => signOut({ callbackUrl: '/login' }) },
   ];

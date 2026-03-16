@@ -1,7 +1,9 @@
 'use client';
 
-import { useState } from 'react';
-import { Layout, Menu, Avatar, Dropdown, Space } from 'antd';
+import { useState, useEffect } from 'react';
+import { Layout, Menu, Avatar, Dropdown, Space, Result, Button } from 'antd';
+import { useSession, signOut } from 'next-auth/react';
+import Link from 'next/link';
 import {
   DashboardOutlined,
   UserOutlined,
@@ -13,47 +15,87 @@ import {
   MenuUnfoldOutlined
 } from '@ant-design/icons';
 import { useRouter, usePathname } from 'next/navigation';
-import Link from 'next/link';
 
 const { Sider, Header, Content } = Layout;
-
-const menuItems = [
-  {
-    key: '/admin',
-    icon: <DashboardOutlined />,
-    label: <Link href="/admin">仪表盘</Link>
-  },
-  {
-    key: '/admin/users',
-    icon: <UserOutlined />,
-    label: <Link href="/admin/users">用户管理</Link>
-  },
-  {
-    key: '/admin/content',
-    icon: <FileSearchOutlined />,
-    label: <Link href="/admin/content">内容审核</Link>
-  },
-  {
-    key: '/admin/ads',
-    icon: <NotificationOutlined />,
-    label: <Link href="/admin/ads">广告管理</Link>
-  }
-];
-
-const userMenuItems = [
-  { key: 'settings', icon: <SettingOutlined />, label: '设置' },
-  { type: 'divider' as const },
-  { key: 'logout', icon: <LogoutOutlined />, label: '退出登录', danger: true }
-];
 
 export default function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const [collapsed, setCollapsed] = useState(false);
+  const { data: session, status } = useSession();
   const router = useRouter();
+  const [collapsed, setCollapsed] = useState(false);
   const pathname = usePathname();
+
+  // 检查是否是管理员
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.push('/login');
+    } else if (status === 'authenticated') {
+      const userRole = (session?.user as any)?.role;
+      if (userRole !== 'ADMIN') {
+        router.push('/home');
+      }
+    }
+  }, [status, session, router]);
+
+  if (status === 'loading') {
+    return (
+      <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        加载中...
+      </div>
+    );
+  }
+
+  const userRole = (session?.user as any)?.role;
+  if (userRole !== 'ADMIN') {
+    return (
+      <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Result
+          status="403"
+          title="403"
+          subTitle="抱歉，您没有权限访问此页面。"
+          extra={
+            <Link href="/home">
+              <Button type="primary" style={{ background: '#FF6B6B', border: 'none' }}>
+                返回首页
+              </Button>
+            </Link>
+          }
+        />
+      </div>
+    );
+  }
+
+  const menuItems = [
+    {
+      key: '/admin',
+      icon: <DashboardOutlined />,
+      label: <Link href="/admin">仪表盘</Link>
+    },
+    {
+      key: '/admin/users',
+      icon: <UserOutlined />,
+      label: <Link href="/admin/users">用户管理</Link>
+    },
+    {
+      key: '/admin/content',
+      icon: <FileSearchOutlined />,
+      label: <Link href="/admin/content">内容审核</Link>
+    },
+    {
+      key: '/admin/ads',
+      icon: <NotificationOutlined />,
+      label: <Link href="/admin/ads">广告管理</Link>
+    }
+  ];
+
+  const userMenuItems = [
+    { key: 'home', icon: <SettingOutlined />, label: <Link href="/home">返回首页</Link> },
+    { type: 'divider' as const },
+    { key: 'logout', icon: <LogoutOutlined />, label: '退出登录', danger: true, onClick: () => signOut({ callbackUrl: '/login' }) }
+  ];
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
